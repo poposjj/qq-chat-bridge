@@ -171,7 +171,7 @@ namespace QqBotLauncher
         public string QqFormat = "[{player}] {message}";
         public string GroupsRaw = "";
         public string RelayUrl = "";
-        public string RelayToken = "";
+        public string RelayToken = LauncherConfig.RandomToken() + LauncherConfig.RandomToken();
 
         public static string IniPath()
         {
