@@ -2586,13 +2586,16 @@ namespace QqBotLauncher
             {
                 Log("还没选群：启动并登录成功后，点“选择群”从机器人所在群里挑一个即可。");
             }
-            if (config.RelayUrl.Trim().Length > 0 && config.RelayToken.Trim().Length == 0)
+            // 私用构建：启动器默认固定走内置中转，保证与 mod 里写死的地址/Token 一致
+            if (config.RelayUrl.Trim().Length == 0)
+            {
+                config.RelayUrl = "";
+            }
+            if (config.RelayToken.Trim().Length == 0)
             {
                 config.RelayToken = LauncherConfig.RandomToken() + LauncherConfig.RandomToken();
-                config.Save();
-                Log("已自动生成中转 Token：" + config.RelayToken);
-                Log("请把这个 Token 填到客户端/玩家配置里（管理员设置里也能看到）");
             }
+            config.Save();
             SyncAll(config, Log);
             StartRelayIfNeeded();
             string napcat = ResolveNapCatDir();
