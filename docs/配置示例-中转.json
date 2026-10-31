@@ -1,0 +1,19 @@
+{
+  "wsUrl": "ws://RELAY_HOST:18574/ws",
+  "httpUrl": "http://RELAY_HOST:18574/api",
+  "token": "RELAY_TOKEN",
+  "groupId": 0,
+  "selfId": 0,
+  "autoConnect": true,
+  "receive": true,
+  "prefix": ":",
+  "broadcast": false,
+  "sendIntervalMs": 1200,
+  "maxMessageLength": 900,
+  "dateFormat": "HH:mm",
+  "bridgePrefix": "[QQ] ",
+  "gameFormat": "&7{time} &d{prefix}{role}{title}{level}{name}&8({qq})&7: {message}",
+  "qqFormat": "[{player}] {message}",
+  "groups": [],
+  "ignoreIds": []
+}

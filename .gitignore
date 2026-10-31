@@ -1,0 +1,27 @@
+# build
+build/
+.gradle/
+run/
+*.log
+logs/
+launcher.ini
+relay.ini
+crash.log
+selftest.log
+
+# binaries
+*.exe
+*.dll
+*.pdb
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# release
+dist/
+*.zip
