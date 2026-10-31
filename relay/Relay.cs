@@ -22,6 +22,7 @@ internal static class Relay
     private static string napcatWs = "ws://127.0.0.1:3001";
     private static string napcatHttp = "http://127.0.0.1:3000";
     private static string token = "";
+    private static string napcatToken = "";
     private static readonly HashSet<string> allowIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private static int listenPort = 18574;
     private static string listenHost = "+";
@@ -116,6 +117,7 @@ internal static class Relay
                 case "napcatWs": napcatWs = value; break;
                 case "napcatHttp": napcatHttp = value; break;
                 case "token": token = value; break;
+                case "napcatToken": napcatToken = value; break;
                 case "maxClients": int.TryParse(value, out maxClients); break;
                 case "ratePerMinute": int.TryParse(value, out ratePerMinute); break;
                 case "logFile": logFile = value; break;
@@ -218,6 +220,10 @@ internal static class Relay
         context.Response.OutputStream.Write(data, 0, data.Length);
         context.Response.Close();
     }
+    private static string UpstreamToken()
+    {
+        return string.IsNullOrWhiteSpace(napcatToken) ? token : napcatToken;
+    }
     private static bool AuthOk(HttpListenerRequest request)
     {
         string header = request.Headers["Authorization"];
@@ -272,7 +278,7 @@ internal static class Relay
         using (WebSocket client = clientContext.WebSocket)
         using (ClientWebSocket upstream = new ClientWebSocket())
         {
-            upstream.Options.SetRequestHeader("Authorization", "Bearer " + token);
+            upstream.Options.SetRequestHeader("Authorization", "Bearer " + UpstreamToken());
             await upstream.ConnectAsync(new Uri(napcatWs), CancellationToken.None);
 
             Task a = Pump(client, upstream);
@@ -322,7 +328,7 @@ internal static class Relay
         request.Method = "POST";
         request.ContentType = "application/json";
         request.Timeout = 12000;
-        request.Headers["Authorization"] = "Bearer " + token;
+        request.Headers["Authorization"] = "Bearer " + UpstreamToken();
         byte[] data = Encoding.UTF8.GetBytes(body ?? "{}");
         request.ContentLength = data.Length;
         using (Stream stream = await request.GetRequestStreamAsync())

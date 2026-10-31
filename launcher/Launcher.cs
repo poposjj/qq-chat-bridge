@@ -171,7 +171,7 @@ namespace QqBotLauncher
         public string QqFormat = "[{player}] {message}";
         public string GroupsRaw = "";
         public string RelayUrl = "";
-        public string RelayToken = LauncherConfig.RandomToken() + LauncherConfig.RandomToken();
+        public string RelayToken = "";
 
         public static string IniPath()
         {
@@ -1846,6 +1846,33 @@ namespace QqBotLauncher
             {
                 log("同步模组配置失败：" + ex.Message);
             }
+            WriteRelayFiles(cfg, log);
+        }
+
+        /** relay 目录下的共享配置：选群/改设置后立即更新，不用等重启。 */
+        internal static void WriteRelayFiles(LauncherConfig cfg, Action<string> log)
+        {
+            if (cfg.RelayUrl == null || cfg.RelayUrl.Trim().Length == 0)
+            {
+                return;
+            }
+            string relayDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "relay");
+            if (!Directory.Exists(relayDir))
+            {
+                return;
+            }
+            try
+            {
+                File.WriteAllText(Path.Combine(relayDir, "client-config.json"),
+                        BuildModConfigJson(cfg), new UTF8Encoding(false));
+                File.WriteAllText(Path.Combine(relayDir, "client-bootstrap.json"),
+                        BuildBootstrapJson(cfg), new UTF8Encoding(false));
+                log("已更新下发配置：relay\\client-config.json（群号 " + cfg.GroupId + "）");
+            }
+            catch (Exception ex)
+            {
+                log("写下发配置失败：" + ex.Message);
+            }
         }
 
         /** 玩家端引导配置：包含 remoteConfigUrl / remoteConfigToken，启动后自动拉取共享配置。 */
@@ -2707,13 +2734,15 @@ namespace QqBotLauncher
                 return;
             }
 
-            int port = ParseRelayPort();
+            int externPort = ParseRelayPort();
+            int port = 18574;
             StringBuilder ini = new StringBuilder();
             ini.AppendLine("listenHost=+");
             ini.AppendLine("listenPort=" + port);
             ini.AppendLine("napcatWs=ws://127.0.0.1:" + config.WsPort);
             ini.AppendLine("napcatHttp=http://127.0.0.1:" + config.HttpPort);
             ini.AppendLine("token=" + config.RelayToken);
+            ini.AppendLine("napcatToken=" + config.Token);
             ini.AppendLine("allowIps=");
             ini.AppendLine("maxClients=64");
             ini.AppendLine("ratePerMinute=120");
@@ -2750,7 +2779,7 @@ namespace QqBotLauncher
                 relayProcess.Start();
                 relayProcess.BeginOutputReadLine();
                 relayProcess.BeginErrorReadLine();
-                Log("中转已启动：监听 0.0.0.0:" + port + "（云防火墙需放行该端口）");
+                Log("中转已启动：监听 0.0.0.0:" + port + "，公网请映射 " + externPort + " → " + port);
             }
             catch (Exception ex)
             {

@@ -1,20 +1,13 @@
-# QQ Relay 配置示例
-# 复制为 relay.ini 后修改 token
-
+# QQ Relay 配置
 listenHost=+
 listenPort=18574
-
-# NapCat 在本机监听的地址（不要暴露到公网）
 napcatWs=ws://127.0.0.1:3001
 napcatHttp=http://127.0.0.1:3000
-
-# 客户端必须携带的 Token，至少 16 位，建议 32 位以上随机串
-# 生成：powershell -Command "[guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')"
-token=CHANGE_ME_TO_A_LONG_RANDOM_TOKEN
-
-# 允许的客户端 IP，逗号分隔；留空 = 不限制
+# 客户端访问 relay 用的 Token
+token=CHANGE_ME_RELAY_TOKEN
+# relay 连接本机 NapCat 用的 Token（与 NapCat onebot11 配置一致）
+napcatToken=CHANGE_ME_NAPCAT_TOKEN
 allowIps=
-
 maxClients=64
 ratePerMinute=120
 logFile=relay.log
