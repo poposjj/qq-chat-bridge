@@ -116,7 +116,14 @@ public final class BridgeConfig {
                 BridgeConfig loaded = GSON.fromJson(json, BridgeConfig.class);
                 if (loaded != null) {
                     lastModified = fileModified();
-                    return loaded.sanitized();
+                    BridgeConfig result = loaded.sanitized();
+                    if (BuildDefaults.RELAY_BASE != null && !BuildDefaults.RELAY_BASE.isBlank()
+                            && (result.remoteConfigUrl == null || result.remoteConfigUrl.isBlank())
+                            && (result.wsUrl.contains("127.0.0.1") || result.wsUrl.contains("localhost"))) {
+                        result.applyRelayDefaults();
+                        result.save();
+                    }
+                    return result;
                 }
             } catch (Exception e) {
                 // 配置损坏时备份，避免用户丢失手写内容
@@ -127,6 +134,7 @@ public final class BridgeConfig {
             }
         }
         BridgeConfig created = new BridgeConfig();
+        created.applyRelayDefaults();
         created.save();
         return created;
     }
@@ -191,6 +199,24 @@ public final class BridgeConfig {
         return this;
     }
 
+    /** 首次启动/旧本地配置迁移：写入构建时内置的中转地址和 Token。 */
+    private BridgeConfig applyRelayDefaults() {
+        if (BuildDefaults.RELAY_BASE == null || BuildDefaults.RELAY_BASE.isBlank()) {
+            return this;
+        }
+        String base = BuildDefaults.RELAY_BASE.trim();
+        wsUrl = "ws://" + base + "/ws";
+        httpUrl = "http://" + base + "/api";
+        token = BuildDefaults.RELAY_TOKEN;
+        remoteConfigUrl = "http://" + base + "/client-config";
+        remoteConfigToken = BuildDefaults.RELAY_TOKEN;
+        if (groupId == 0L && BuildDefaults.DEFAULT_GROUP_ID != 0L) {
+            groupId = BuildDefaults.DEFAULT_GROUP_ID;
+            groups.clear();
+            groups.add(new GroupEntry(groupId));
+        }
+        return this;
+    }
     /** 用服务端下发的 JSON 覆盖连接/显示/群组等字段（不覆盖 remoteConfig* 本身）。 */
     public static synchronized void applyRemote(JsonObject json) {
         BridgeConfig c = get();

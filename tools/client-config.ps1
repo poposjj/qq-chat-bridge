@@ -16,7 +16,7 @@ Write-Host "============================================"
 Write-Host ""
 
 if ([string]::IsNullOrWhiteSpace($RelayHost)) {
-    $RelayHost = Read-Host "中转地址（公网IP:外部端口，例如 103.236.99.243:28574）"
+    $RelayHost = Read-Host "中转地址（公网IP:外部端口，例如 1.2.3.4:28574）"
 }
 $RelayHost = $RelayHost.Trim()
 if ($RelayHost -match '^https?://') { $RelayHost = $RelayHost -replace '^https?://','' }
