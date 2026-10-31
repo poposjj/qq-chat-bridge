@@ -79,7 +79,8 @@ build.cmd
 2. 修改 `relay.ini`：设置一个足够长的 `token`
 3. 启动 `start-relay.cmd`（管理员，首次会自动加 URL ACL）
 4. 在云防火墙/安全组把 relay 端口（默认 18574）映射到公网，**不要**映射 NapCat 的 3000/3001
-5. 在启动器“管理员设置 → 服务器中转”填入 `公网IP:18574` 和同一个 Token
+5. 在启动器“管理员设置 → 服务器中转”填入 `公网IP:外部端口` 和 Token（留空自动生成）
+   启动器会自动写 `relay\relay.ini`、拉起 `QQRelay.exe`，停止机器人时一起关闭
 6. 模组配置会自动变成 `ws://IP:18574/ws`、`http://IP:18574/api`、`token=...`
 
 详见 `docs/部署-中转.md`。

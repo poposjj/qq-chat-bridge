@@ -1636,6 +1636,7 @@ namespace QqBotLauncher
         private readonly PillButton startButton = new PillButton();
         private readonly PillButton stopButton = new PillButton();
         private Process napcatProcess;
+        private Process relayProcess;
         private Process consoleProcess;
         private Timer groupCheckTimer;
         private int groupCheckTries;
@@ -2572,7 +2573,15 @@ namespace QqBotLauncher
             {
                 Log("还没选群：启动并登录成功后，点“选择群”从机器人所在群里挑一个即可。");
             }
+            if (config.RelayUrl.Trim().Length > 0 && config.RelayToken.Trim().Length == 0)
+            {
+                config.RelayToken = LauncherConfig.RandomToken() + LauncherConfig.RandomToken();
+                config.Save();
+                Log("已自动生成中转 Token：" + config.RelayToken);
+                Log("请把这个 Token 填到客户端/玩家配置里（管理员设置里也能看到）");
+            }
             SyncAll(config, Log);
+            StartRelayIfNeeded();
             string napcat = ResolveNapCatDir();
             if (napcat == null)
             {
@@ -2663,6 +2672,101 @@ namespace QqBotLauncher
             }
         }
 
+        private void StartRelayIfNeeded()
+        {
+            if (config.RelayUrl == null || config.RelayUrl.Trim().Length == 0)
+            {
+                return;
+            }
+            string relayDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "relay");
+            string exe = Path.Combine(relayDir, "QQRelay.exe");
+            if (!File.Exists(exe))
+            {
+                exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "QQRelay.exe");
+                relayDir = AppDomain.CurrentDomain.BaseDirectory;
+            }
+            if (!File.Exists(exe))
+            {
+                MessageBox.Show("启用了服务器中转，但找不到 relay\\QQRelay.exe。\n请把 relay 文件夹放到启动器目录。", "提示");
+                return;
+            }
+
+            int port = ParseRelayPort();
+            StringBuilder ini = new StringBuilder();
+            ini.AppendLine("listenHost=+");
+            ini.AppendLine("listenPort=" + port);
+            ini.AppendLine("napcatWs=ws://127.0.0.1:" + config.WsPort);
+            ini.AppendLine("napcatHttp=http://127.0.0.1:" + config.HttpPort);
+            ini.AppendLine("token=" + config.RelayToken);
+            ini.AppendLine("allowIps=");
+            ini.AppendLine("maxClients=64");
+            ini.AppendLine("ratePerMinute=120");
+            ini.AppendLine("logFile=relay.log");
+            File.WriteAllText(Path.Combine(relayDir, "relay.ini"), ini.ToString(), new UTF8Encoding(false));
+
+            try
+            {
+                ProcessStartInfo info = new ProcessStartInfo(exe);
+                info.WorkingDirectory = relayDir;
+                info.UseShellExecute = false;
+                info.CreateNoWindow = true;
+                info.RedirectStandardOutput = true;
+                info.RedirectStandardError = true;
+                info.StandardOutputEncoding = Encoding.UTF8;
+                info.StandardErrorEncoding = Encoding.UTF8;
+                relayProcess = new Process();
+                relayProcess.StartInfo = info;
+                relayProcess.OutputDataReceived += delegate(object s, DataReceivedEventArgs e)
+                {
+                    if (!string.IsNullOrEmpty(e.Data)) Log("[relay] " + e.Data);
+                };
+                relayProcess.ErrorDataReceived += delegate(object s, DataReceivedEventArgs e)
+                {
+                    if (!string.IsNullOrEmpty(e.Data)) Log("[relay] " + e.Data);
+                };
+                relayProcess.Start();
+                relayProcess.BeginOutputReadLine();
+                relayProcess.BeginErrorReadLine();
+                Log("中转已启动：监听 0.0.0.0:" + port + "（云防火墙需放行该端口）");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("启动中转失败：" + ex.Message, "错误");
+            }
+        }
+
+        private int ParseRelayPort()
+        {
+            string url = config.RelayUrl.Trim();
+            int colon = url.LastIndexOf(':');
+            int port;
+            if (colon > 0 && int.TryParse(url.Substring(colon + 1), out port) && port > 0 && port < 65536)
+            {
+                return port;
+            }
+            return 18574;
+        }
+
+        private void StopRelay()
+        {
+            try
+            {
+                if (relayProcess != null && !relayProcess.HasExited)
+                {
+                    Process.Start(new ProcessStartInfo("taskkill",
+                        "/PID " + relayProcess.Id + " /T /F")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    });
+                    relayProcess.WaitForExit(2000);
+                }
+            }
+            catch (Exception)
+            {
+            }
+            relayProcess = null;
+        }
         private void StopBot()
         {
             try
@@ -2682,6 +2786,7 @@ namespace QqBotLauncher
             {
             }
             napcatProcess = null;
+            StopRelay();
             if (groupCheckTimer != null) { groupCheckTimer.Stop(); }
             StopConsole();
             startButton.Enabled = true;
