@@ -116,3 +116,14 @@ MIT（本仓库代码）。NapCat 为 AGPL-3.0，需自行下载并遵守其协�
 - relay 本身不终结 TLS。公网部署建议前置 Caddy/Nginx/Cloudflare Tunnel，
   客户端把 wsUrl/httpUrl 改成 wss/https。
 - 本仓库不含 NapCat、QQ NT、Fabric API、converse、YACL，需按各自协议自行下载。
+## 下发配置（统一改连接地址）
+
+relay 增加了一个只读端点 `GET /client-config`，返回 relay 目录下的 `client-config.json`。
+
+- 启动器启用“服务器中转”后，会自动在 `relay\` 写入：
+  - `client-config.json`：完整共享配置（连接地址、Token、群号、多群规则、模板等）
+  - `client-bootstrap.json`：玩家引导配置，只多 `remoteConfigUrl` / `remoteConfigToken`
+- 玩家端把 `client-bootstrap.json` 放到 `.minecraft/config/qqchatbridge.json`（或用生成器），
+  模组启动/进世界时会拉取 `client-config.json` 并应用
+- 管理员之后只改启动器里的设置并重启机器人，玩家重进世界即可生效，不用挨个改配置
+- 用户端只有读取能力，没有写端点，也没有相关指令

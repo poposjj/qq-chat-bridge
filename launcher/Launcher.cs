@@ -1848,6 +1848,19 @@ namespace QqBotLauncher
             }
         }
 
+        /** 玩家端引导配置：包含 remoteConfigUrl / remoteConfigToken，启动后自动拉取共享配置。 */
+        private static string BuildBootstrapJson(LauncherConfig cfg)
+        {
+            string json = BuildModConfigJson(cfg);
+            int end = json.LastIndexOf('}');
+            if (end > 0)
+            {
+                json = json.Substring(0, end).TrimEnd();
+                json += ",\n  \"remoteConfigUrl\": \"http://" + Escape(cfg.RelayUrl.Trim()) + "/client-config\",";
+                json += "\n  \"remoteConfigToken\": \"" + Escape(cfg.RelayToken) + "\"\n}\n";
+            }
+            return json;
+        }
         private static string BuildModConfigJson(LauncherConfig cfg)
         {
             StringBuilder sb = new StringBuilder();
@@ -2703,6 +2716,13 @@ namespace QqBotLauncher
             ini.AppendLine("ratePerMinute=120");
             ini.AppendLine("logFile=relay.log");
             File.WriteAllText(Path.Combine(relayDir, "relay.ini"), ini.ToString(), new UTF8Encoding(false));
+
+            // 下发给玩家端的共享配置
+            File.WriteAllText(Path.Combine(relayDir, "client-config.json"),
+                    BuildModConfigJson(config), new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(relayDir, "client-bootstrap.json"),
+                    BuildBootstrapJson(config), new UTF8Encoding(false));
+            Log("已写入下发配置：client-config.json / client-bootstrap.json");
 
             try
             {

@@ -152,6 +152,11 @@ internal static class Relay
             }
 
             string path = context.Request.Url == null ? "/" : context.Request.Url.AbsolutePath;
+            if (path == "/client-config" || path == "/client-config.json")
+            {
+                ServeClientConfig(context);
+                return;
+            }
             if (path == "/ws" || path == "/")
             {
                 if (!context.Request.IsWebSocketRequest)
@@ -191,6 +196,28 @@ internal static class Relay
         }
     }
 
+    /** 下发共享配置：同样需要 Bearer Token，只读。 */
+    private static void ServeClientConfig(HttpListenerContext context)
+    {
+        if (context.Request.HttpMethod != "GET")
+        {
+            Fail(context, 405);
+            return;
+        }
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "client-config.json");
+        if (!File.Exists(path))
+        {
+            Fail(context, 404);
+            return;
+        }
+        byte[] data = File.ReadAllBytes(path);
+        context.Response.StatusCode = 200;
+        context.Response.ContentType = "application/json; charset=utf-8";
+        context.Response.Headers["Cache-Control"] = "no-store";
+        context.Response.ContentLength64 = data.Length;
+        context.Response.OutputStream.Write(data, 0, data.Length);
+        context.Response.Close();
+    }
     private static bool AuthOk(HttpListenerRequest request)
     {
         string header = request.Headers["Authorization"];

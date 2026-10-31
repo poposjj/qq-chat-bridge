@@ -111,4 +111,6 @@ Hypixel: [{player}] {message}
 | sendIntervalMs / maxMessageLength | 发送节流与分片 |
 | gameFormat / qqFormat | 两个模板 |
 | ignoreIds | 忽略的 QQ 号 |
+| remoteConfigUrl | relay 的 /client-config 地址，留空不下发 |
+| remoteConfigToken | 拉取下发配置的 Token，留空用 token |
 | dateFormat / bridgePrefix | 时间格式与前缀 |

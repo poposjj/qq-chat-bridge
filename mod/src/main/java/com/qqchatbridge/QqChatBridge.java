@@ -4,6 +4,7 @@ import com.qqchatbridge.chat.ChatHook;
 import com.qqchatbridge.chat.ChatFormat;
 import com.qqchatbridge.command.QqCommand;
 import com.qqchatbridge.config.BridgeConfig;
+import com.qqchatbridge.config.RemoteConfig;
 import com.qqchatbridge.qq.OneBotClient;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -39,22 +40,28 @@ public class QqChatBridge implements ClientModInitializer {
 
         // 进入世界后再连：这样“已连接”的提示能正常显示在聊天栏里
         ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
-            BridgeConfig current = BridgeConfig.get();
-            if (current.groupId == 0L) {
-                ChatFormat.notify("§e[QQ] 管理员还没在启动器里配置群号，模组不会连接");
-                return;
-            }
-            if (current.autoConnect && !client.isConnected()) {
-                client.start();
-            } else if (client.isConnected()) {
-                ChatFormat.notify("§a[QQ] 已连接群聊："
-                        + (client.groupName().isBlank() ? String.valueOf(current.groupId) : client.groupName()));
-            }
+            // 进世界时再拉一次下发配置，管理员改完玩家重进世界即可生效
+            RemoteConfig.refreshAsync(() -> {
+                BridgeConfig current = BridgeConfig.get();
+                if (current.groupId == 0L) {
+                    ChatFormat.notify("§e[QQ] 管理员还没配置群号，模组不会连接");
+                    return;
+                }
+                if (current.autoConnect && !client.isConnected()) {
+                    client.start();
+                } else if (client.isConnected()) {
+                    ChatFormat.notify("§a[QQ] 已连接群聊："
+                            + (client.groupName().isBlank() ? String.valueOf(current.groupId) : client.groupName()));
+                }
+            });
         });
 
-        if (config.autoConnect && config.groupId != 0L) {
-            client.start();
-        }
+        RemoteConfig.refreshAsync(() -> {
+            BridgeConfig current = BridgeConfig.get();
+            if (current.autoConnect && current.groupId != 0L) {
+                client.start();
+            }
+        });
         LOGGER.info("QQ Chat Bridge 初始化完成，群号={}，ws={}", config.groupId, config.wsUrl);
     }
 }

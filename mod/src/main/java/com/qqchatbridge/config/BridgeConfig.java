@@ -2,6 +2,8 @@ package com.qqchatbridge.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -73,6 +75,10 @@ public final class BridgeConfig {
     public String gameFormat = "&7{time} &d{prefix}{role}{title}{level}{name}&8({qq})&7: {message}";
     /** 发到 QQ 的模板，支持 {player} {message} {time} {world} {group}。 */
     public String qqFormat = "[{player}] {message}";
+    /** 服务端下发配置的地址（relay 的 /client-config），留空则不下发。 */
+    public String remoteConfigUrl = "";
+    /** 拉取下发配置用的 Token，留空则用 token。 */
+    public String remoteConfigToken = "";
     /** 显示群主 / 管理员徽章。 */
     /** 显示群内专属头衔（如 [摸鱼王]）。 */
     /** 显示群等级 Lv.x。 */
@@ -171,6 +177,8 @@ public final class BridgeConfig {
         }
         if (ignoreIds == null) ignoreIds = new ArrayList<>();
         if (groups == null) groups = new ArrayList<>();
+        if (remoteConfigUrl == null) remoteConfigUrl = "";
+        if (remoteConfigToken == null) remoteConfigToken = "";
         for (GroupEntry entry : groups)
         {
             if (entry.viewers == null)
@@ -183,6 +191,43 @@ public final class BridgeConfig {
         return this;
     }
 
+    /** 用服务端下发的 JSON 覆盖连接/显示/群组等字段（不覆盖 remoteConfig* 本身）。 */
+    public static synchronized void applyRemote(JsonObject json) {
+        BridgeConfig c = get();
+        if (json.has("wsUrl")) c.wsUrl = json.get("wsUrl").getAsString();
+        if (json.has("httpUrl")) c.httpUrl = json.get("httpUrl").getAsString();
+        if (json.has("token")) c.token = json.get("token").getAsString();
+        if (json.has("groupId")) c.groupId = json.get("groupId").getAsLong();
+        if (json.has("receive")) c.receive = json.get("receive").getAsBoolean();
+        if (json.has("prefix")) c.prefix = json.get("prefix").getAsString();
+        if (json.has("broadcast")) c.broadcast = json.get("broadcast").getAsBoolean();
+        if (json.has("sendIntervalMs")) c.sendIntervalMs = json.get("sendIntervalMs").getAsInt();
+        if (json.has("maxMessageLength")) c.maxMessageLength = json.get("maxMessageLength").getAsInt();
+        if (json.has("dateFormat")) c.dateFormat = json.get("dateFormat").getAsString();
+        if (json.has("bridgePrefix")) c.bridgePrefix = json.get("bridgePrefix").getAsString();
+        if (json.has("gameFormat")) c.gameFormat = json.get("gameFormat").getAsString();
+        if (json.has("qqFormat")) c.qqFormat = json.get("qqFormat").getAsString();
+        if (json.has("ignoreIds")) {
+            c.ignoreIds = new ArrayList<>();
+            for (JsonElement e : json.getAsJsonArray("ignoreIds")) {
+                c.ignoreIds.add(e.getAsString());
+            }
+        }
+        if (json.has("groups")) {
+            c.groups = new ArrayList<>();
+            for (JsonElement e : json.getAsJsonArray("groups")) {
+                JsonObject g = e.getAsJsonObject();
+                GroupEntry entry = new GroupEntry(g.get("id").getAsLong());
+                if (g.has("viewers")) {
+                    for (JsonElement v : g.getAsJsonArray("viewers")) {
+                        entry.viewers.add(v.getAsString());
+                    }
+                }
+                c.groups.add(entry);
+            }
+        }
+        c.sanitized();
+    }
     public void save() {
         try {
             Path path = configPath();
