@@ -174,7 +174,8 @@ public final class OneBotClient {
                         connecting = false;
                         if (throwable != null) {
                             connected = false;
-                            ChatFormat.notify("§c[QQ] 连接失败：" + throwable.getMessage());
+                            ChatFormat.notify("§c[QQ] 连接失败：" + throwable.getMessage()
+                            + "（" + BridgeConfig.get().wsUrl + "）检查中转/NapCat 是否启动、Token 是否一致");
                             scheduleReconnect();
                         }
                     });
@@ -750,6 +751,10 @@ public final class OneBotClient {
                 return;
             }
             try {
+                if (BridgeConfig.get().groupId == 0L) {
+                    ChatFormat.notify("§c[QQ] 没有群号，消息未发送");
+                    continue;
+                }
                 long wait = BridgeConfig.get().sendIntervalMs - (System.currentTimeMillis() - lastSendAt);
                 if (wait > 0) {
                     Thread.sleep(wait);

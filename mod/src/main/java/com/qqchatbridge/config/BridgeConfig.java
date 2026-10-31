@@ -117,6 +117,12 @@ public final class BridgeConfig {
                 if (loaded != null) {
                     lastModified = fileModified();
                     BridgeConfig result = loaded.sanitized();
+                    if (result.groupId == 0L && BuildDefaults.DEFAULT_GROUP_ID != 0L) {
+                        result.groupId = BuildDefaults.DEFAULT_GROUP_ID;
+                        result.groups.clear();
+                        result.groups.add(new GroupEntry(result.groupId));
+                        result.save();
+                    }
 
                     return result;
                 }
