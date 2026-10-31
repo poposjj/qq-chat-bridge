@@ -127,17 +127,21 @@ relay 增加了一个只读端点 `GET /client-config`，返回 relay 目录下�
   模组启动/进世界时会拉取 `client-config.json` 并应用
 - 管理员之后只改启动器里的设置并重启机器人，玩家重进世界即可生效，不用挨个改配置
 - 用户端只有读取能力，没有写端点，也没有相关指令
-## 内置中转默认值（私用构建）
+## 客户端配置分发（通用构建）
 
-`mod/src/main/java/com/qqchatbridge/config/BuildDefaults.java` 可以写死中转地址和 Token：
+仓库默认是通用构建：`BuildDefaults` 三个值为空，jar 里不含任何服务器地址或 Token。
 
-```java
-public static final String RELAY_BASE = "1.2.3.4:28574";
-public static final String RELAY_TOKEN = "32位以上随机串";
-public static final long DEFAULT_GROUP_ID = 0L;
+服务器管理员在启动器里启用中转后，启动器会导出：
+
+```
+client-pack\qqchatbridge.json
 ```
 
-- 玩家首次启动时若没有 `config/qqchatbridge.json`，模组会自动写入中转地址、Token、群号，
-  然后拉取 relay 的 `/client-config`，不需要外部脚本
-- 如果旧配置还是 `127.0.0.1`，也会自动迁移到内置中转地址
-- 公开仓库版本请保持三个值为空，避免泄露 IP/Token
+把它和 jar 一起发给玩家，玩家放到 `.minecraft\config\qqchatbridge.json` 即可：
+
+- 文件里包含该服务器的 ws/http 地址、relay Token、群号、remoteConfigUrl
+- 模组启动/进世界时再拉取 relay 的 `/client-config`，后续改模板、多群规则、广播等不用重发文件
+- 换服务器只需要重新导出 client-pack，不用重新构建 jar
+
+如果确实需要“jar 内置某台服务器”的私用构建，可以改 `BuildDefaults` 后自行编译；
+公开分发请保持为空。

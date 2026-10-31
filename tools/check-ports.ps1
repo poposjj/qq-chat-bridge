@@ -1,8 +1,9 @@
 ﻿param(
-    [string]$HostName = "1.2.3.4",
+    [string]$HostName = "",
     [string]$Ports = "10174 18574 3000 3001 6099"
 )
 
+if ([string]::IsNullOrWhiteSpace($HostName)) { $HostName = Read-Host "目标 IP / 域名" }
 $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 

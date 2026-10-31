@@ -1868,6 +1868,15 @@ namespace QqBotLauncher
                 File.WriteAllText(Path.Combine(relayDir, "client-bootstrap.json"),
                         BuildBootstrapJson(cfg), new UTF8Encoding(false));
                 log("已更新下发配置：relay\\client-config.json（群号 " + cfg.GroupId + "）");
+                string packDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "client-pack");
+                Directory.CreateDirectory(packDir);
+                File.WriteAllText(Path.Combine(packDir, "qqchatbridge.json"),
+                        BuildBootstrapJson(cfg), new UTF8Encoding(false));
+                File.WriteAllText(Path.Combine(packDir, "使用说明.txt"),
+                        "把 qqchatbridge.json 复制到 .minecraft\\config\\ ，和 mod jar 一起发给玩家。\r\n"
+                        + "内容已包含中转地址、Token、群号，玩家装好 jar 后不用再改配置。\r\n",
+                        new UTF8Encoding(false));
+                log("客户端配置已导出：" + Path.Combine(packDir, "qqchatbridge.json"));
             }
             catch (Exception ex)
             {
@@ -2613,16 +2622,12 @@ namespace QqBotLauncher
             {
                 Log("还没选群：启动并登录成功后，点“选择群”从机器人所在群里挑一个即可。");
             }
-            // 私用构建：启动器默认固定走内置中转，保证与 mod 里写死的地址/Token 一致
-            if (config.RelayUrl.Trim().Length == 0)
-            {
-                config.RelayUrl = "";
-            }
-            if (config.RelayToken.Trim().Length == 0)
+            if (config.RelayUrl.Trim().Length > 0 && config.RelayToken.Trim().Length == 0)
             {
                 config.RelayToken = LauncherConfig.RandomToken() + LauncherConfig.RandomToken();
+                config.Save();
+                Log("已生成中转 Token：" + config.RelayToken + "（导出客户端配置时会一起写出）");
             }
-            config.Save();
             SyncAll(config, Log);
             StartRelayIfNeeded();
             string napcat = ResolveNapCatDir();
